@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ blog_post.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <article class="blog-post">
+            <h1 class="mb-3">{{ blog_post.title }}</h1>
+            
+            <div class="blog-meta mb-4">
+                By <a href="{% url 'blog:blogger-detail' blog_post.author.pk %}" class="text-decoration-none">
+                    {{ blog_post.author }}
+                </a> | 
+                {{ blog_post.created_at|date:"F j, Y" }} |
+                <i class="bi bi-clock"></i> {{ blog_post.get_reading_time }} min read |
+                Category: <a href="{% url 'blog:blog-list' %}?category={{ blog_post.category.slug }}" class="text-decoration-none">
+                    {{ blog_post.category.name }}
+                </a>
+            </div>
+
+            <div class="blog-content">
+                {{ blog_post.content|linebreaks }}
+            </div>
+
+            {% if blog_post.tags.all %}
+                <div class="tags mt-4">
+                    {% for tag in blog_post.tags.all %}
+                        <a href="{% url 'blog:blog-list' %}?tag={{ tag.slug }}" class="badge bg-secondary text-decoration-none">
+                            {{ tag.name }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Reactions Section -->
+            <div class="reactions mt-4">
+                <h3 class="h5">Reactions</h3>
+                <div class="d-flex gap-3">
+                    <button class="btn btn-outline-primary reaction-btn {% if user_reaction == 'like' %}active{% endif %}" 
+                            data-reaction="like" data-post-slug="{{ blog_post.slug }}" type="button">
+                        <i class="bi bi-hand-thumbs-up"></i> 
+                        <span class="likes-count">{{ likes_count }}</span>
+                    </button>
+                    <button class="btn btn-outline-danger reaction-btn {% if user_reaction == 'dislike' %}active{% endif %}" 
+                            data-reaction="dislike" data-post-slug="{{ blog_post.slug }}" type="button">
+                        <i class="bi bi-hand-thumbs-down"></i> 
+                        <span class="dislikes-count">{{ dislikes_count }}</span>
+                    </button>
+                </div>
+            </div>
+        </article>
+
+        <!-- Comments Section -->
+        <section class="comments mt-5">
+            <h2 class="h4 mb-4">Comments</h2>
+
+            {% if user.is_authenticated %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="post" action="{% url 'blog:add-comment' blog_post.slug %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                {{ comment_form.content }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Comment</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    Please <a href="{% url 'login' %}?next={{ request.path }}">login</a> to add a comment.
+                </div>
+            {% endif %}
+
+            {% if blog_post.comments.all %}
+                {% for comment in blog_post.comments.all %}
+                    <div class="comment">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ comment.author }}</strong>
+                                <small class="text-muted">{{ comment.created_at|date:"F j, Y g:i A" }}</small>
+                            </div>
+                            {% if user == comment.author %}
+                                <form method="post" action="{% url 'blog:delete-comment' comment.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-link text-danger p-0" 
+                                            onclick="return confirm('Are you sure you want to delete this comment?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                        <p class="mb-0 mt-2">{{ comment.content|linebreaks }}</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No comments yet.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">About the Author</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ blog_post.author }}</h6>
+                {% if blog_post.author.bio %}
+                    <p class="card-text">{{ blog_post.author.bio }}</p>
+                {% endif %}
+                <a href="{% url 'blog:blogger-detail' blog_post.author.pk %}" class="btn btn-outline-primary btn-sm">
+                    View Profile
+                </a>
+            </div>
+        </div>
+
+        {% if related_posts %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Related Posts</h5>
+                    <ul class="list-unstyled">
+                        {% for post in related_posts %}
+                            <li class="mb-2">
+                                <a href="{% url 'blog:blog-detail' post.slug %}" class="text-decoration-none">
+                                    {{ post.title }}
+                                </a>
+                                <small class="text-muted d-block">
+                                    {{ post.created_at|date:"F j, Y" }}
+                                </small>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reactionButtons = document.querySelectorAll('.reaction-btn');
+    
+    reactionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            if (!{% if user.is_authenticated %}true{% else %}false{% endif %}) {
+                window.location.href = "{% url 'login' %}?next={{ request.path }}";
+                return;
+            }
+
+            const reactionType = this.dataset.reaction;
+            const postSlug = this.dataset.postSlug;
+            const formData = new FormData();
+            formData.append('reaction_type', reactionType);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            // Disable buttons during request
+            reactionButtons.forEach(btn => btn.disabled = true);
+
+            fetch(`{% url 'blog:react-to-post' blog_post.slug %}`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Network response was not ok');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update counts with animation
+                const likesCount = document.querySelector('.likes-count');
+                const dislikesCount = document.querySelector('.dislikes-count');
+                
+                likesCount.textContent = data.likes;
+                dislikesCount.textContent = data.dislikes;
+                
+                // Add animation class
+                likesCount.classList.add('updated');
+                dislikesCount.classList.add('updated');
+                
+                // Remove animation class after animation completes
+                setTimeout(() => {
+                    likesCount.classList.remove('updated');
+                    dislikesCount.classList.remove('updated');
+                }, 300);
+                
+                // Update button states
+                reactionButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.reaction === data.user_reaction) {
+                        btn.classList.add('active');
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while processing your reaction. Please try again.');
+            })
+            .finally(() => {
+                // Re-enable buttons
+                reactionButtons.forEach(btn => btn.disabled = false);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

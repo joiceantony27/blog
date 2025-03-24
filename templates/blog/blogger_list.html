@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Our Bloggers{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h1 class="card-title h2 mb-3">Meet Our Bloggers</h1>
+                    <p class="lead text-muted">Get to know the talented writers who contribute to our blog community.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if bloggers %}
+            {% for blogger in bloggers %}
+                <div class="col">
+                    <div class="card h-100 blogger-card shadow-sm">
+                        {% if blogger.profile_picture %}
+                            <img src="{{ blogger.profile_picture.url }}" class="card-img-top" alt="{{ blogger.user.get_full_name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="profile-image-placeholder">
+                                <i class="bi bi-person-circle" style="font-size: 4rem;"></i>
+                            </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{ blogger.user.get_full_name|default:blogger.user.username }}
+                            </h5>
+                            <p class="card-text text-muted mb-2">
+                                <i class="bi bi-journal-text"></i> {{ blogger.user.blogpost_set.count }} post{{ blogger.user.blogpost_set.count|pluralize }}
+                            </p>
+                            {% if blogger.bio %}
+                                <p class="card-text">{{ blogger.bio|truncatewords:30 }}</p>
+                            {% endif %}
+                            <a href="{% url 'blog:blogger-detail' blogger.pk %}" class="btn btn-outline-primary">
+                                <i class="bi bi-person-lines-fill"></i> View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle me-2"></i>No bloggers found.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if is_paginated %}
+        <nav aria-label="Blogger pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+{% endblock %} 

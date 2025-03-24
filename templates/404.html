@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto text-center">
+        <i class="bi bi-emoji-frown display-1 text-muted mb-4"></i>
+        <h1 class="display-4 mb-4">404</h1>
+        <h2 class="h4 text-muted mb-4">Page Not Found</h2>
+        <p class="lead mb-4">
+            The page you're looking for doesn't exist or has been moved.
+        </p>
+        <a href="{% url 'blog:index' %}" class="btn btn-primary">
+            <i class="bi bi-house"></i> Go to Homepage
+        </a>
+    </div>
+</div>
+{% endblock %} 

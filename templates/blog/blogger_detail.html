@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ blogger.user.get_full_name|default:blogger.user.username }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    {% if blogger.profile_picture %}
+                        <img src="{{ blogger.profile_picture.url }}" alt="{{ blogger.user.get_full_name }}" 
+                             class="rounded-circle me-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" 
+                             style="width: 100px; height: 100px;">
+                            <i class="bi bi-person-circle" style="font-size: 3rem;"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h1 class="card-title h2 mb-1">{{ blogger.user.get_full_name|default:blogger.user.username }}</h1>
+                        <p class="text-muted mb-2">
+                            <i class="bi bi-journal-text"></i> {{ blogger.posts.count }} post{{ blogger.posts.count|pluralize }}
+                        </p>
+                        {% if blogger.bio %}
+                            <p class="card-text">{{ blogger.bio }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Social Media Links -->
+                <div class="social-links mt-3">
+                    {% if blogger.website %}
+                        <a href="{{ blogger.website }}" class="btn btn-outline-primary btn-sm me-2" target="_blank">
+                            <i class="bi bi-globe"></i> Website
+                        </a>
+                    {% endif %}
+                    {% if blogger.twitter_handle %}
+                        <a href="{{ blogger.get_twitter_url }}" class="btn btn-outline-info btn-sm me-2" target="_blank">
+                            <i class="bi bi-twitter"></i> Twitter
+                        </a>
+                    {% endif %}
+                    {% if blogger.linkedin_profile %}
+                        <a href="{{ blogger.linkedin_profile }}" class="btn btn-outline-primary btn-sm me-2" target="_blank">
+                            <i class="bi bi-linkedin"></i> LinkedIn
+                        </a>
+                    {% endif %}
+                    {% if blogger.github_profile %}
+                        <a href="{{ blogger.github_profile }}" class="btn btn-outline-dark btn-sm me-2" target="_blank">
+                            <i class="bi bi-github"></i> GitHub
+                        </a>
+                    {% endif %}
+                    {% if blogger.instagram_handle %}
+                        <a href="{{ blogger.get_instagram_url }}" class="btn btn-outline-danger btn-sm" target="_blank">
+                            <i class="bi bi-instagram"></i> Instagram
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h3 mb-4">Posts by {{ blogger.user.get_full_name|default:blogger.user.username }}</h2>
+
+        {% if blogger.posts.all %}
+            {% for post in blogger.posts.all %}
+                <article class="blog-post">
+                    <h3 class="h4">
+                        <a href="{% url 'blog:blog-detail' post.slug %}" class="text-decoration-none">
+                            {{ post.title }}
+                        </a>
+                    </h3>
+                    <div class="blog-meta">
+                        {{ post.created_at|date:"F j, Y" }} |
+                        <i class="bi bi-clock"></i> {{ post.get_reading_time }} min read |
+                        Category: <a href="{% url 'blog:blog-list' %}?category={{ post.category.slug }}" class="text-decoration-none">
+                            {{ post.category.name }}
+                        </a>
+                    </div>
+                    <p class="mt-2">{{ post.content|truncatewords:50 }}</p>
+                    {% if post.tags.all %}
+                        <div class="tags">
+                            {% for tag in post.tags.all %}
+                                <a href="{% url 'blog:blog-list' %}?tag={{ tag.slug }}" class="badge bg-secondary text-decoration-none">
+                                    {{ tag.name }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <a href="{% url 'blog:blog-detail' post.slug %}" class="btn btn-sm btn-outline-primary mt-2">
+                        Read More
+                    </a>
+                </article>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">No posts yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Popular Categories</h5>
+                <ul class="list-unstyled">
+                    {% for category in categories %}
+                        <li class="mb-2">
+                            <a href="{% url 'blog:blog-list' %}?category={{ category.slug }}" class="text-decoration-none">
+                                {{ category.name }}
+                            </a>
+                            <span class="badge bg-secondary">{{ category.posts.count }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        {% if tags %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Popular Tags</h5>
+                    <div class="tags">
+                        {% for tag in tags %}
+                            <a href="{% url 'blog:blog-list' %}?tag={{ tag.slug }}" class="badge bg-secondary text-decoration-none me-1">
+                                {{ tag.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
