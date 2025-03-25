@@ -3,6 +3,7 @@
 {% block title %}{{ blog_post.title }}{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="row">
     <div class="col-md-8">
         <article class="blog-post">
@@ -138,6 +139,12 @@
 
 {% block extra_js %}
 <script>
+// Ensure CSRF token is available
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    return csrfToken;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const reactionButtons = document.querySelectorAll('.reaction-btn');
     
@@ -152,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const postSlug = this.dataset.postSlug;
             const formData = new FormData();
             formData.append('reaction_type', reactionType);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('csrfmiddlewaretoken', getCSRFToken());
 
             // Disable buttons during request
             reactionButtons.forEach(btn => btn.disabled = true);
@@ -161,8 +168,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
+                    'X-CSRFToken': getCSRFToken(),
+                },
+                credentials: 'include'
             })
             .then(response => {
                 if (!response.ok) {

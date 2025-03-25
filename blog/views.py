@@ -10,6 +10,8 @@ from django.contrib.auth import login
 from django.utils.text import slugify
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 from .models import BlogPost, Blogger, Category, Tag, Comment, Reaction
 from .forms import CommentForm, UserRegistrationForm, BlogPostForm
@@ -235,6 +237,7 @@ def delete_comment(request, pk):
         messages.error(request, 'You can only delete your own comments.')
     return redirect('blog:blog-detail', slug=post.slug)
 
+@ensure_csrf_cookie
 @require_POST
 @login_required
 def react_to_post(request, slug):
